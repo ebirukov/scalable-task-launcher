@@ -22,6 +22,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.Job
 import org.springframework.batch.core.JobExecution
+import org.springframework.batch.core.JobParameter
 import org.springframework.batch.core.StepExecution
 import org.springframework.batch.integration.launch.JobLaunchRequest
 import org.springframework.boot.runApplication
@@ -46,8 +47,8 @@ fun main(args: Array<String>) {
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 sealed class JobType(): Serializable
 class SimpleJobType(val taskExecutor: String) : JobType()
-class ComplexJobType() : JobType()
-class JobDefinition(val jobName: String, @JsonManagedReference val jobType: JobType, val time: Long)
+object ComplexJobType : JobType()
+class JobDefinition(val jobName: String, @JsonManagedReference val jobType: JobType, val params: Map<String, Any> = emptyMap())
 
 @MessagingGateway
 @Profile("!worker")
@@ -65,8 +66,8 @@ class GreetingProducer(private val gateway: GreetingGateway) {
     fun hi(@PathVariable type: String): ResponseEntity<*> {
 
         val jobDefinition = when (type) {
-            "simple" -> JobDefinition("Single", SimpleJobType("taskBean"), System.nanoTime())
-            "complex" -> JobDefinition("Complex", ComplexJobType(), System.nanoTime())
+            "simple" -> JobDefinition("Single", SimpleJobType("taskBean"), mapOf("time" to System.nanoTime()))
+            "complex" -> JobDefinition("Complex", ComplexJobType)
             else -> throw RuntimeException("type $type not found")
         }
         gateway.directGreet(jobDefinition)

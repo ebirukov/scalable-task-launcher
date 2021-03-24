@@ -1,7 +1,5 @@
 package net.oldgeek
 
-import net.oldgeek.JobDefinition
-import org.springframework.batch.core.Job
 import org.springframework.batch.core.JobParameters
 import org.springframework.batch.integration.launch.JobLaunchRequest
 import org.springframework.batch.core.JobParametersBuilder
@@ -37,7 +35,7 @@ class JobParameterConfigurator {
     fun prepareJobParameters(jobDefinition: JobDefinition): JobParameters {
         val jobParametersBuilder = JobParametersBuilder()
         jobParametersBuilder.addString("name", jobDefinition.jobName)
-        jobParametersBuilder.addLong("dummy", jobDefinition.time)
+        jobParametersBuilder.addLong("dummy", jobDefinition.params.getOrDefault("time", System.nanoTime()) as Long)
         return jobParametersBuilder.toJobParameters()
     }
 }
