@@ -1,7 +1,6 @@
 package net.oldgeek
 
-import com.fasterxml.jackson.annotation.JsonBackReference
-import com.fasterxml.jackson.annotation.JsonManagedReference
+import com.fasterxml.jackson.annotation.*
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.MapperFeature
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -34,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.http.ResponseEntity
 import org.springframework.integration.annotation.Gateway
+import java.io.Serializable
 
 @SpringBootApplication
 @IntegrationComponentScan
@@ -43,8 +43,11 @@ fun main(args: Array<String>) {
     runApplication<BatchApplication>(*args)
 }
 
-enum class JobType {SIMPLE, COMPLEX}
-data class JobDefinition(val jobName: String, val jobType: JobType, val time: Long)
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
+sealed class JobType(): Serializable
+class SimpleJobType(val taskExecutor: String) : JobType()
+class ComplexJobType() : JobType()
+class JobDefinition(val jobName: String, @JsonManagedReference val jobType: JobType, val time: Long)
 
 @MessagingGateway
 @Profile("!worker")
@@ -62,8 +65,8 @@ class GreetingProducer(private val gateway: GreetingGateway) {
     fun hi(@PathVariable type: String): ResponseEntity<*> {
 
         val jobDefinition = when (type) {
-            "simple" -> JobDefinition("Single", JobType.SIMPLE, System.nanoTime())
-            "complex" -> JobDefinition("Complex", JobType.COMPLEX, System.nanoTime())
+            "simple" -> JobDefinition("Single", SimpleJobType("taskBean"), System.nanoTime())
+            "complex" -> JobDefinition("Complex", ComplexJobType(), System.nanoTime())
             else -> throw RuntimeException("type $type not found")
         }
         gateway.directGreet(jobDefinition)

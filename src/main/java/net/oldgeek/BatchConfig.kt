@@ -32,10 +32,10 @@ class BatchConfig(
             .build()
     }
 
-    fun singleJob(jobName: String): Job {
+    fun singleJob(jobName: String, taskBean: String): Job {
         return jobBuilderFactory[jobName]
             .incrementer(RunIdIncrementer())
-            .start(sampleStep("sampleStep"))
+            .start(sampleStep("step-$taskBean"))
             .build()
     }
 

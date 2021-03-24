@@ -25,8 +25,8 @@ class JobDefinitionMessageToJobRequest(
 class JobTypeResolver(private val batchConfig: BatchConfig) {
 
     fun resolveJob(jobDefinition: JobDefinition) = when(jobDefinition.jobType) {
-        JobType.SIMPLE -> batchConfig.singleJob(jobDefinition.jobName)
-            JobType.COMPLEX -> batchConfig.complexJob(jobDefinition.jobName)
+        is SimpleJobType -> batchConfig.singleJob(jobDefinition.jobName, jobDefinition.jobType.taskExecutor)
+        is ComplexJobType -> batchConfig.complexJob(jobDefinition.jobName)
     }
 
 }
