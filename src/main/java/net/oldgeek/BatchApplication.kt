@@ -43,7 +43,8 @@ fun main(args: Array<String>) {
     runApplication<BatchApplication>(*args)
 }
 
-data class JobDefinition(val jobName: String, val job: Job?, val time: Long)
+enum class JobType {SIMPLE, COMPLEX}
+data class JobDefinition(val jobName: String, val jobType: JobType, val time: Long)
 
 @MessagingGateway
 @Profile("!worker")
@@ -57,11 +58,16 @@ interface GreetingGateway {
 @Profile("!worker")
 class GreetingProducer(private val gateway: GreetingGateway) {
 
-    @RequestMapping(method = [RequestMethod.GET], value = ["/hi/{name}"])
-    fun hi(@PathVariable name: String): ResponseEntity<*> {
-        val message = "Hello, $name!"
-        gateway.directGreet(JobDefinition("Direct: $message", null, System.nanoTime()))
-        return ResponseEntity.ok(message)
+    @RequestMapping(method = [RequestMethod.GET], value = ["/submit/{type}"])
+    fun hi(@PathVariable type: String): ResponseEntity<*> {
+
+        val jobDefinition = when (type) {
+            "simple" -> JobDefinition("Single", JobType.SIMPLE, System.nanoTime())
+            "complex" -> JobDefinition("Complex", JobType.COMPLEX, System.nanoTime())
+            else -> throw RuntimeException("type $type not found")
+        }
+        gateway.directGreet(jobDefinition)
+        return ResponseEntity.ok(type)
     }
 }
 

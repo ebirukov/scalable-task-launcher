@@ -22,10 +22,8 @@ class BatchConfig(
     var stepBuilderFactory: StepBuilderFactory
 ) {
 
-    @Bean
-    @JobScope
-    fun sampleStep(): Step {
-        return stepBuilderFactory["sampleStep"]
+    fun sampleStep(name: String): Step {
+        return stepBuilderFactory[name]
             .tasklet { _: StepContribution, chunkContext: ChunkContext ->
                 val l = chunkContext.stepContext.jobParameters["dummy"] as Long
                 if (l % 2 == 0L) Thread.sleep(6000)
@@ -34,11 +32,17 @@ class BatchConfig(
             .build()
     }
 
-    @Bean
-    fun sampleJob(): Job {
-        return jobBuilderFactory["sampleJob"]
+    fun singleJob(jobName: String): Job {
+        return jobBuilderFactory[jobName]
             .incrementer(RunIdIncrementer())
-            .start(sampleStep())
+            .start(sampleStep("sampleStep"))
+            .build()
+    }
+
+    fun complexJob(jobName: String): Job {
+        return jobBuilderFactory[jobName]
+            .incrementer(RunIdIncrementer())
+            .start(sampleStep("step1")).next(sampleStep("step2")).next(sampleStep("step3"))
             .build()
     }
 }

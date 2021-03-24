@@ -17,20 +17,18 @@ import org.springframework.messaging.Message
 class IntegrationConfig(
     private val jobRepository: JobRepository,
     private val producerChannels: ProducerChannels,
-    private val sampleJob: Job
+    private val jobDefinitionMessageToJobRequest: JobDefinitionMessageToJobRequest
 ) {
 
     @Bean
     fun sampleFlow(): IntegrationFlow {
         return IntegrationFlows.from(producerChannels.jobRequestInbound())
-            .transform(fileMessageToJobRequest())
+            .transform(jobDefinitionMessageToJobRequest)
             .handle(jobLaunchingGateway())
             .handle { jobExecution: Message<*> -> println(jobExecution.payload) }
             .get()
     }
 
-    @Bean
-    fun fileMessageToJobRequest() = FileMessageToJobRequest(sampleJob)
 
     @Bean
     fun jobLaunchingGateway(): JobLaunchingGateway {
