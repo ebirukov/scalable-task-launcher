@@ -26,7 +26,7 @@ public class BatchTests {
 		jobParametersBuilder.addString("file_path", "src/test/resources/sample.txt");
 		// We add a dummy value to make job params unique, or else spring batch
 		// will only run it the first time
-		jobParametersBuilder.addDate("dummy", new Date());
+		jobParametersBuilder.addLong("dummy", 1L);
 		JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParametersBuilder.toJobParameters());
 		System.out.println(jobExecution.getExitStatus());
 	}

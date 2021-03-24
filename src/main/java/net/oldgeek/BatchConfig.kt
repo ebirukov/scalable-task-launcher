@@ -1,56 +1,44 @@
-package net.oldgeek;
+package net.oldgeek
 
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
-import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.core.launch.support.RunIdIncrementer;
-import org.springframework.batch.item.file.FlatFileItemReader;
-import org.springframework.batch.item.file.mapping.PassThroughLineMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.batch.core.Job
+import org.springframework.batch.core.Step
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
+import org.springframework.batch.core.configuration.annotation.StepBuilderFactory
+import org.springframework.batch.core.step.tasklet.Tasklet
+import org.springframework.batch.core.StepContribution
+import org.springframework.batch.core.configuration.annotation.JobScope
+import org.springframework.batch.core.scope.context.ChunkContext
+import org.springframework.batch.repeat.RepeatStatus
+import org.springframework.batch.core.launch.support.RunIdIncrementer
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
 
 @Configuration
 @EnableBatchProcessing
-public class BatchConfig {
+class BatchConfig(
+    var jobBuilderFactory: JobBuilderFactory,
+    var stepBuilderFactory: StepBuilderFactory
+) {
 
-	@Autowired
-	JobBuilderFactory jobBuilderFactory;
+    @Bean
+    @JobScope
+    fun sampleStep(): Step {
+        return stepBuilderFactory["sampleStep"]
+            .tasklet { _: StepContribution, chunkContext: ChunkContext ->
+                val l = chunkContext.stepContext.jobParameters["dummy"] as Long
+                if (l % 2 == 0L) Thread.sleep(6000)
+                RepeatStatus.FINISHED
+            } //.taskExecutor(new SimpleAsyncTaskExecutor("batch"))
+            .build()
+    }
 
-	@Autowired
-	StepBuilderFactory stepBuilderFactory;
-
-	@Bean
-	Step sampleStep() {
-		return stepBuilderFactory.get("sampleStep")//
-				.<String, String>chunk(5) //
-				.reader(itemReader(null)) //
-				.writer(i -> i.stream().forEach(j -> System.out.println(j))) //
-				.build();
-	}
-
-	@Bean
-	Job sampleJob() {
-		Job job = jobBuilderFactory.get("sampleJob") //
-				.incrementer(new RunIdIncrementer()) //
-				.start(sampleStep()) //
-				.build();
-		return job;
-	}
-
-	@Bean
-	@StepScope
-	FlatFileItemReader<String> itemReader(@Value("#{jobParameters[file_path]}") String filePath) {
-		FlatFileItemReader<String> reader = new FlatFileItemReader<String>();
-		final FileSystemResource fileResource = new FileSystemResource(filePath);
-		reader.setResource(fileResource);
-		reader.setLineMapper(new PassThroughLineMapper());
-		return reader;
-	}
-
+    @Bean
+    fun sampleJob(): Job {
+        return jobBuilderFactory["sampleJob"]
+            .incrementer(RunIdIncrementer())
+            .start(sampleStep())
+            .build()
+    }
 }
