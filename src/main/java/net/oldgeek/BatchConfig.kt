@@ -25,7 +25,7 @@ class BatchConfig(
     fun sampleStep(name: String): Step {
         return stepBuilderFactory[name]
             .tasklet { _: StepContribution, chunkContext: ChunkContext ->
-                val l = chunkContext.stepContext.jobParameters["dummy"] as Long
+                val l = chunkContext.stepContext.jobParameters["time"] as Long
                 if (l % 2 == 0L) Thread.sleep(6000)
                 RepeatStatus.FINISHED
             } //.taskExecutor(new SimpleAsyncTaskExecutor("batch"))

@@ -1,21 +1,24 @@
 package net.oldgeek
 
+import net.oldgeek.JobParameterConfigurator.Companion.convertToJobParams
+import org.springframework.batch.core.JobParameter
 import org.springframework.batch.core.JobParameters
 import org.springframework.batch.integration.launch.JobLaunchRequest
 import org.springframework.batch.core.JobParametersBuilder
+import org.springframework.batch.core.JobParametersInvalidException
 import org.springframework.integration.annotation.Transformer
 import org.springframework.stereotype.Component
+import java.util.*
 
 // See http://docs.spring.io/spring-batch/trunk/reference/html/springBatchIntegration.html#launching-batch-jobs-through-messages
 @Component
 class JobDefinitionMessageToJobRequest(
-        private val parameterConfigurator: JobParameterConfigurator,
        private val jobTypeResolver: JobTypeResolver
     ) {
 
     @Transformer
     fun toRequest(jobDefinition: JobDefinition): JobLaunchRequest {
-        return JobLaunchRequest(jobTypeResolver.resolveJob(jobDefinition), parameterConfigurator.prepareJobParameters(jobDefinition))
+        return JobLaunchRequest(jobTypeResolver.resolveJob(jobDefinition), jobDefinition.jobType.params.convertToJobParams())
     }
 }
 
@@ -29,13 +32,19 @@ class JobTypeResolver(private val batchConfig: BatchConfig) {
 
 }
 
-@Component
 class JobParameterConfigurator {
 
-    fun prepareJobParameters(jobDefinition: JobDefinition): JobParameters {
-        val jobParametersBuilder = JobParametersBuilder()
-        jobParametersBuilder.addString("name", jobDefinition.jobName)
-        jobParametersBuilder.addLong("dummy", jobDefinition.params.getOrDefault("time", System.nanoTime()) as Long)
-        return jobParametersBuilder.toJobParameters()
+    companion object {
+        internal fun Map<String, Any>.convertToJobParams() =
+            JobParameters( mapValues { it.value.toJobParam() } )
+
+        private fun Any.toJobParam() =
+            when (this) {
+                is Long -> JobParameter(this)
+                is Date -> JobParameter(this)
+                is String -> JobParameter(this)
+                is Double -> JobParameter(this)
+                else -> throw JobParametersInvalidException("can't convert $this")
+            }
     }
 }

@@ -45,10 +45,10 @@ fun main(args: Array<String>) {
 }
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
-sealed class JobType(): Serializable
-class SimpleJobType(val taskExecutor: String) : JobType()
-object ComplexJobType : JobType()
-class JobDefinition(val jobName: String, @JsonManagedReference val jobType: JobType, val params: Map<String, Any> = emptyMap())
+sealed class JobType(open val params: Map<String, Any>): Serializable
+class SimpleJobType(val taskExecutor: String, override val params: Map<String, Any> = emptyMap()) : JobType(params)
+class ComplexJobType(override val params: Map<String, Any> = emptyMap()) : JobType(params)
+class JobDefinition(val jobName: String, @JsonManagedReference val jobType: JobType)
 
 @MessagingGateway
 @Profile("!worker")
@@ -66,8 +66,8 @@ class GreetingProducer(private val gateway: GreetingGateway) {
     fun hi(@PathVariable type: String): ResponseEntity<*> {
 
         val jobDefinition = when (type) {
-            "simple" -> JobDefinition("Single", SimpleJobType("taskBean"), mapOf("time" to System.nanoTime()))
-            "complex" -> JobDefinition("Complex", ComplexJobType)
+            "simple" -> JobDefinition("Single", SimpleJobType("taskBean", mapOf("time" to System.nanoTime())) )
+            "complex" -> JobDefinition("Complex", ComplexJobType())
             else -> throw RuntimeException("type $type not found")
         }
         gateway.directGreet(jobDefinition)
